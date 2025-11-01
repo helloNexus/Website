@@ -1,48 +1,53 @@
-/* Global */
+/* ----------------------------
+   GLOBAL
+---------------------------- */
 body {
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
   background: #000;
   color: #fff;
+  overflow-x: hidden;
 }
 
 .container {
   display: flex;
   height: 100vh;
+  width: 100%;
 }
 
-/* Sidebar */
+/* ----------------------------
+   SIDEBAR
+---------------------------- */
 .sidebar {
-  width: 200px;
+  width: 200px; /* bigger sidebar */
   background: #111;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 30px;
+  align-items: flex-start;
+  padding: 30px 15px;
 }
 
 .logo {
   font-weight: 600;
-  margin-bottom: 30px;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  font-size: 22px;
   color: #0ea5e9;
+  margin-bottom: 40px;
 }
 
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 12px 20px;
-  font-weight: 500;
+  gap: 15px;
+  width: 100%;
 }
 
 .menu-item {
   cursor: pointer;
-  padding: 10px;
-  border-radius: 10px;
-  text-align: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  width: 100%;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .menu-item:hover, .menu-item.active {
@@ -50,31 +55,31 @@ body {
   color: #000;
 }
 
-.menu-item.active {
-  background: #0ea5e9;
-  color: #000;
-  border-radius: 10px;
-}
-
-/* Main */
+/* ----------------------------
+   MAIN CONTENT
+---------------------------- */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: #000;
+  position: relative;
+  padding: 20px;
 }
 
-/* Chat area */
+/* ----------------------------
+   CHAT AREA
+---------------------------- */
 .chat-area {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  padding-bottom: 140px; /* space for floating input */
 }
 
 .message {
   margin-bottom: 15px;
-  padding: 10px 15px;
-  border-radius: 12px;
+  padding: 12px 18px;
+  border-radius: 20px;
   max-width: 70%;
   word-wrap: break-word;
 }
@@ -91,30 +96,45 @@ body {
   align-self: flex-start;
 }
 
-/* Input bar */
+/* ----------------------------
+   FLOATING INPUT BAR
+---------------------------- */
 .input-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  padding: 15px;
-  border-top: 1px solid #222;
-  background: #111;
+  width: 80%;
+  max-width: 700px;
+  background: #111; /* floating dark island */
+  border-radius: 30px;
+  padding: 10px 15px;
+  box-shadow: 0 8px 20px rgba(14,165,233,0.5);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
 }
 
 .input-bar input {
   flex: 1;
-  padding: 12px 15px;
-  border-radius: 12px;
-  border-bottom: 2px solid #0ea5e9;
   border: none;
   outline: none;
   background: transparent;
   color: #fff;
+  padding: 10px 15px;
+  border-radius: 30px;
+  font-size: 16px;
+}
+
+.input-bar input:focus {
+  border: 2px solid #0ea5e9;
 }
 
 .input-bar button {
   margin-left: 10px;
-  padding: 12px 20px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: 30px;
   background: #0ea5e9;
   color: #000;
   cursor: pointer;
@@ -125,7 +145,9 @@ body {
   background: #06b6d4;
 }
 
-/* Footer */
+/* ----------------------------
+   FOOTER / DISCLAIMER
+---------------------------- */
 .footer {
   text-align: center;
   padding: 10px;
