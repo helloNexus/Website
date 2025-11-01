@@ -2,6 +2,7 @@ const sendBtn = document.getElementById("sendBtn");
 const userInput = document.getElementById("userInput");
 const chatArea = document.getElementById("chatArea");
 
+// ---- CHAT FUNCTIONALITY ----
 function addMessage(text, type) {
   const msg = document.createElement("div");
   msg.classList.add("message", type);
@@ -10,20 +11,32 @@ function addMessage(text, type) {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-// Handle send
 sendBtn.addEventListener("click", () => {
   const text = userInput.value.trim();
   if (!text) return;
   addMessage(text, "user");
   userInput.value = "";
 
-  // Temporary AI placeholder
+  // Placeholder AI response
   setTimeout(() => {
     addMessage("🤖 Nexus says: “This is a placeholder response.”", "system");
   }, 500);
 });
 
-// Send on Enter key
 userInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") sendBtn.click();
+});
+
+// ---- MODAL FUNCTIONALITY WITH LOCALSTORAGE ----
+const modal = document.getElementById("welcomeModal");
+const closeBtn = document.getElementById("closeModal");
+
+// Show modal only if not seen before
+if (!localStorage.getItem("nexusModalSeen")) {
+  modal.style.display = "flex";
+}
+
+closeBtn.addEventListener("click", () => {
+  modal.style.display = "none";
+  localStorage.setItem("nexusModalSeen", "true");
 });
