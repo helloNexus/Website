@@ -13,12 +13,12 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 60px;
+  width: 200px;
   background: #111;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 20px;
+  padding-top: 30px;
 }
 
 .logo {
@@ -33,6 +33,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  padding: 12px 20px;
+  font-weight: 500;
 }
 
 .menu-item {
@@ -46,6 +48,12 @@ body {
 .menu-item:hover, .menu-item.active {
   background: #0ea5e9;
   color: #000;
+}
+
+.menu-item.active {
+  background: #0ea5e9;
+  color: #000;
+  border-radius: 10px;
 }
 
 /* Main */
@@ -93,19 +101,20 @@ body {
 
 .input-bar input {
   flex: 1;
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: 12px;
+  border-bottom: 2px solid #0ea5e9;
   border: none;
   outline: none;
-  background: #222;
+  background: transparent;
   color: #fff;
 }
 
 .input-bar button {
   margin-left: 10px;
-  padding: 10px 15px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #0ea5e9;
   color: #000;
   cursor: pointer;
