@@ -3,220 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus – Coming Soon</title>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Helvetica', sans-serif;
-      background-color: #ffffff;
-      color: #111;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .background {
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px);
-      background-size: 50px 50px;
-      animation: move 20s linear infinite;
-      z-index: 0;
-    }
-
-    @keyframes move {
-      0% { transform: translate(0,0); }
-      100% { transform: translate(50px,50px); }
-    }
-
-    .top-left-logo {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      height: 50px;
-      width: auto;
-      z-index: 1;
-    }
-
-    .content {
-      z-index: 1;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .company-name {
-      font-size: 1.2rem;
-      color: #777;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-      opacity: 0;
-      animation: fadeIn 1s forwards;
-    }
-
-    h1 {
-      font-size: 2.8rem;
-      margin-bottom: 15px;
-      line-height: 1.2;
-      font-weight: bold;
-      opacity: 0;
-      animation: fadeIn 1s forwards 0.3s;
-    }
-
-    h2 {
-      font-size: 1.5rem;
-      font-weight: normal;
-      color: #555;
-      margin-bottom: 40px;
-      opacity: 0;
-      animation: fadeIn 1s forwards 0.6s;
-    }
-
-    .button {
-      background-color: #111;
-      color: #fff;
-      padding: 14px 36px;
-      font-size: 1rem;
-      text-decoration: none;
-      border-radius: 25px;
-      transition: background 0.3s ease;
-      opacity: 0;
-      animation: fadeIn 1s forwards 0.9s;
-      cursor: pointer;
-    }
-
-    .button:hover {
-      background-color: #333;
-    }
-
-    .footer {
-      text-align: center;
-      padding: 15px 0;
-      font-size: 0.9rem;
-      color: #777;
-      z-index: 1;
-      opacity: 0;
-      animation: fadeIn 1s forwards 1.2s;
-    }
-
-    .footer a {
-      color: #0077B5;
-      text-decoration: none;
-      font-weight: bold;
-      margin-left: 5px;
-    }
-
-    .footer a:hover { text-decoration: underline; }
-
-    @keyframes fadeIn { to { opacity: 1; } }
-
-    @media (max-width: 600px) {
-      .company-name { font-size: 1rem; }
-      h1 { font-size: 2rem; margin-bottom: 10px; }
-      h2 { font-size: 1.2rem; margin-bottom: 30px; }
-      .top-left-logo { height: 35px; }
-      .button { padding: 12px 30px; font-size: 0.9rem; }
-    }
-
-    /* Popup modal styles */
-    .modal {
-      display: none; 
-      position: fixed; 
-      z-index: 10; 
-      left: 0;
-      top: 0;
-      width: 100%; 
-      height: 100%; 
-      overflow: auto; 
-      background-color: rgba(0,0,0,0.6);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-content {
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    .modal input[type="email"] {
-      padding: 12px;
-      width: 80%;
-      margin: 15px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-    }
-
-    .modal button {
-      background-color: #111;
-      color: #fff;
-      padding: 12px 25px;
-      border: none;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.3s ease;
-    }
-
-    .modal button:hover { background-color: #333; }
-  </style>
+  <title>Nexus Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="background"></div>
+  <div class="container">
 
-  <img src="https://uploads.onecompiler.io/4435bag3q/4435amg87/ChatGPT%20Image%20Oct%2029,%202025,%2008_15_29%20PM.png" alt="Nexus Logo" class="top-left-logo">
-
-  <div class="content">
-    <div class="company-name">Nexus</div>
-    <h1>The first AI mind-training platform</h1>
-    <h2>Coming Soon</h2>
-    <div class="button" onclick="openModal()">Stay Tuned</div>
-  </div>
-
-  <div class="footer">
-    &copy; 2025 Nexus. Follow us on 
-    <a href="https://www.linkedin.com/company/nexus" target="_blank">LinkedIn</a>
-  </div>
-
-  <!-- Email popup modal -->
-  <div id="emailModal" class="modal">
-    <div class="modal-content">
-      <h2>Stay Updated</h2>
-      <p>Enter your email to join our launch list</p>
-      <form action="https://docs.google.com/forms/d/e/6a7gVsPhdvy1pLR56/formResponse" method="POST" target="_blank" id="googleForm">
-        <input type="email" name="entry.1234567890" placeholder="Your email" required id="emailInput">
-        <br>
-        <button type="submit">Notify Me</button>
-      </form>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">NEXUS</div>
+      <div class="menu">
+        <div class="menu-item active">💬 Chat</div>
+        <div class="menu-item">📝 Notes</div>
+        <div class="menu-item">🔍 Explore</div>
+        <div class="menu-item">⚙️ Settings</div>
+      </div>
     </div>
+
+    <!-- Main content -->
+    <div class="main">
+      <div class="chat-area" id="chatArea">
+        <div class="message system">Welcome to Nexus! Type below to start.</div>
+      </div>
+
+      <!-- Input bar -->
+      <div class="input-bar">
+        <input type="text" id="userInput" placeholder="Type your message here...">
+        <button id="sendBtn">Send</button>
+      </div>
+
+      <!-- Footer / disclaimer -->
+      <div class="footer">
+        ⚠️ Nexus is an experimental AI platform. Outputs are for research and creativity purposes only.
+      </div>
+    </div>
+
   </div>
 
-  <script>
-    function openModal() {
-      const modal = document.getElementById('emailModal');
-      modal.style.display = 'flex';
-      document.getElementById('emailInput').focus();
-    }
-
-    // Close modal if clicked outside content
-    window.onclick = function(event) {
-      const modal = document.getElementById('emailModal');
-      if (event.target == modal) modal.style.display = "none";
-    }
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
-
