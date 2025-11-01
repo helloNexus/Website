@@ -73,7 +73,7 @@ body {
 .chat-area {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 140px; /* space for floating input */
+  padding-bottom: 200px; /* space for floating input bar */
 }
 
 .message {
@@ -101,13 +101,13 @@ body {
 ---------------------------- */
 .input-bar {
   position: fixed;
-  bottom: 20px;
+  bottom: 60px; /* keep it above footer */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   width: 80%;
   max-width: 700px;
-  background: #111; /* floating dark island */
+  background: #111; /* floating island */
   border-radius: 30px;
   padding: 10px 15px;
   box-shadow: 0 8px 20px rgba(14,165,233,0.5);
@@ -117,8 +117,8 @@ body {
 
 .input-bar input {
   flex: 1;
-  border: none;
-  outline: none;
+  border: none;        /* remove border */
+  outline: none;       /* remove outline */
   background: transparent;
   color: #fff;
   padding: 10px 15px;
@@ -127,7 +127,8 @@ body {
 }
 
 .input-bar input:focus {
-  border: 2px solid #0ea5e9;
+  border: none;
+  outline: none;       /* remove underline on focus */
 }
 
 .input-bar button {
@@ -154,4 +155,6 @@ body {
   font-size: 12px;
   color: #888;
   border-top: 1px solid #222;
+  position: relative; /* stays below floating input */
+  z-index: 1;
 }
