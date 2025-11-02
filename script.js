@@ -1,16 +1,15 @@
-// ===== ELEMENTS =====
+// Elements
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const modal = document.getElementById("welcomeModal");
 const closeModal = document.getElementById("closeModal");
-const sidebarMenu = document.querySelector(".sidebar .menu");
+const historyList = document.getElementById("historyList");
 
-// ===== GLOBALS =====
 let currentChat = [];
 let chatHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
 
-// ===== MODAL =====
+// Modal
 window.onload = () => {
   if (!localStorage.getItem("nexusModalSeen")) {
     modal.style.display = "flex";
@@ -23,17 +22,16 @@ closeModal?.addEventListener("click", () => {
   localStorage.setItem("nexusModalSeen", "true");
 });
 
-// ===== EVENT LISTENERS =====
+// Event listeners
 sendBtn?.addEventListener("click", handleSend);
 userInput?.addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleSend();
 });
 
-// ===== SEND MESSAGE =====
+// Send message
 async function handleSend() {
   const text = userInput.value.trim();
   if (!text) return;
-
   addMessage("user", text);
   userInput.value = "";
 
@@ -43,12 +41,11 @@ async function handleSend() {
   addMessage("ai", aiResponse);
 
   currentChat.push({ role: "assistant", content: aiResponse });
-
   saveChat();
   renderHistory();
 }
 
-// ===== CALL SERVER ENDPOINT =====
+// Call server endpoint
 async function askAI(prompt) {
   try {
     const res = await fetch("/api/chat", {
@@ -56,7 +53,14 @@ async function askAI(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     });
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      const txt = await res.text();
+      console.error("HF returned non-JSON:", txt);
+      return "HF returned invalid response";
+    }
     return data.text || "No response from AI.";
   } catch (err) {
     console.error(err);
@@ -64,7 +68,7 @@ async function askAI(prompt) {
   }
 }
 
-// ===== ADD MESSAGE =====
+// Add message to chat
 function addMessage(sender, text) {
   const div = document.createElement("div");
   div.classList.add("message", sender);
@@ -73,10 +77,9 @@ function addMessage(sender, text) {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-// ===== CHAT HISTORY =====
+// Save chat & summarize
 function saveChat() {
   if (!currentChat.length) return;
-
   let name =
     chatHistory.length === 0
       ? currentChat[0].content.split(" ").slice(0, 4).join(" ") + "..."
@@ -88,11 +91,10 @@ function saveChat() {
     chatHistory[0].messages = [...currentChat];
     chatHistory[0].summary = summarizeChat(currentChat);
   }
-
   localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
 }
 
-// ===== SUMMARIZE CHAT =====
+// Simple summary: join first 300 chars of user messages
 function summarizeChat(messages) {
   return messages
     .filter((m) => m.role === "user")
@@ -101,22 +103,20 @@ function summarizeChat(messages) {
     .slice(0, 300);
 }
 
-// ===== RENDER HISTORY =====
+// Render sidebar history
 function renderHistory() {
-  if (!sidebarMenu) return;
-
-  sidebarMenu.querySelectorAll(".history-item").forEach((e) => e.remove());
-
+  if (!historyList) return;
+  historyList.innerHTML = "";
   chatHistory.forEach((chat, idx) => {
     const item = document.createElement("div");
     item.className = "menu-item history-item";
     item.textContent = chat.name;
     item.onclick = () => loadChat(idx);
-    sidebarMenu.appendChild(item);
+    historyList.appendChild(item);
   });
 }
 
-// ===== LOAD CHAT =====
+// Load a previous chat
 function loadChat(index) {
   const chat = chatHistory[index];
   chatArea.innerHTML = "";
