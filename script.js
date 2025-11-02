@@ -23,7 +23,7 @@ closeModal?.addEventListener("click", () => {
   localStorage.setItem("nexusModalSeen", "true");
 });
 
-// ===== EVENTS =====
+// ===== EVENT LISTENERS =====
 sendBtn?.addEventListener("click", handleSend);
 userInput?.addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleSend();
@@ -56,17 +56,10 @@ async function askAI(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     });
-
     const data = await res.json();
-    console.log("Server AI response:", data);
-
-    // Hugging Face response
-    if (Array.isArray(data)) return data[0]?.generated_text || "No response from AI.";
-    if (data.generated_text) return data.generated_text;
-
-    return "No response from AI.";
+    return data.text || "No response from AI.";
   } catch (err) {
-    console.error("Error connecting to AI:", err);
+    console.error(err);
     return "Error connecting to AI.";
   }
 }
@@ -112,19 +105,21 @@ function summarizeChat(messages) {
 function renderHistory() {
   if (!sidebarMenu) return;
 
-  const existing = sidebarMenu.querySelectorAll(".history-item");
-  existing.forEach((e) => e.remove());
+  // Remove old items
+  sidebarMenu.querySelectorAll(".history-item").forEach((e) => e.remove());
 
-  chatHistory.forEach((chat) => {
+  chatHistory.forEach((chat, idx) => {
     const item = document.createElement("div");
     item.className = "menu-item history-item";
     item.textContent = chat.name;
-    item.onclick = () => loadChat(chat);
+    item.onclick = () => loadChat(idx);
     sidebarMenu.appendChild(item);
   });
 }
 
-function loadChat(chat) {
+// ===== LOAD CHAT =====
+function loadChat(index) {
+  const chat = chatHistory[index];
   chatArea.innerHTML = "";
   currentChat = [...chat.messages];
   chat.messages.forEach((msg) =>
