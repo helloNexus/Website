@@ -1,6 +1,6 @@
 // === CONFIG ===
-const GEMINI_API_KEY = "AIzaSyD-rS7ZrGdQcDQ21rHVGnpLS9R6p1FNKWE"; // visible for testing
-const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_API_KEY;
+const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_KEY = "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"; // replace with your key for testing
 
 // === ELEMENTS ===
 const chatArea = document.getElementById("chatArea");
@@ -14,94 +14,101 @@ let chats = JSON.parse(localStorage.getItem("nexusChats") || "{}");
 
 // === HELPERS ===
 function addMessage(role, text) {
-    const div = document.createElement("div");
-    div.classList.add("message", role);
-    div.textContent = text;
-    chatArea.appendChild(div);
-    chatArea.scrollTop = chatArea.scrollHeight;
+  const div = document.createElement("div");
+  div.classList.add("message", role);
+  div.textContent = text;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
 
 function saveChats() {
-    localStorage.setItem("nexusChats", JSON.stringify(chats));
+  localStorage.setItem("nexusChats", JSON.stringify(chats));
 }
 
 function renderHistory() {
-    if (!historyArea) return;
-    historyArea.innerHTML = "";
-    Object.entries(chats).forEach(([id, chat]) => {
-        const item = document.createElement("div");
-        item.classList.add("history-item");
-        item.textContent = chat.title || "Untitled Chat";
-        item.onclick = () => loadChat(id);
-        historyArea.appendChild(item);
-    });
+  if (!historyArea) return;
+  historyArea.innerHTML = "";
+  Object.entries(chats).forEach(([id, chat]) => {
+    const item = document.createElement("div");
+    item.classList.add("history-item");
+    item.textContent = chat.title || "Untitled Chat";
+    item.onclick = () => loadChat(id);
+    historyArea.appendChild(item);
+  });
 }
 
 function loadChat(id) {
-    currentChatId = id;
-    chatArea.innerHTML = "";
-    chats[id].messages.forEach(msg => addMessage(msg.role, msg.text));
+  currentChatId = id;
+  chatArea.innerHTML = "";
+  chats[id].messages.forEach(msg => addMessage(msg.role, msg.text));
 }
 
 // === AI CALL ===
-async function askAI(prompt) {
-    try {
-        const res = await fetch(GEMINI_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-        const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
-    } catch (err) {
-        console.error(err);
-        return "Error calling Gemini API.";
-    }
+async function askLlama(messages) {
+  try {
+    const res = await fetch(OPENROUTER_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "HTTP-Referer": window.location.origin
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-4-maverick",
+        messages: messages
+      })
+    });
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "No response.";
+  } catch (err) {
+    console.error(err);
+    return "Error connecting to LLaMA API.";
+  }
 }
 
-// === SEND MESSAGE ===
+// === CHAT FLOW ===
 async function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text) return;
-    userInput.value = "";
+  const text = userInput.value.trim();
+  if (!text) return;
+  userInput.value = "";
 
-    // Start new chat if needed
-    if (!currentChatId) {
-        currentChatId = Date.now().toString();
-        chats[currentChatId] = { title: "", messages: [], topics: [] };
-    }
+  // Start new chat if needed
+  if (!currentChatId) {
+    currentChatId = Date.now().toString();
+    chats[currentChatId] = { title: "", messages: [], topics: [] };
+  }
 
-    const chat = chats[currentChatId];
-    chat.messages.push({ role: "user", text });
-    addMessage("user", text);
+  const chat = chats[currentChatId];
+  chat.messages.push({ role: "user", text });
+  addMessage("user", text);
 
-    if (!chat.title) {
-        chat.title = text.split(" ").slice(0, 5).join(" ") + "...";
-    }
+  if (!chat.title) {
+    chat.title = text.split(" ").slice(0, 5).join(" ") + "...";
+  }
 
-    // Build prompt with context & topic summaries
-    const topicSummary = chat.topics.map(t => `${t.name}: ${t.summary}`).join("\n");
-    const context = chat.messages.map(m => `${m.role}: ${m.text}`).join("\n");
+  // Build context
+  const contextMessages = chat.messages.map(m => ({
+    role: m.role === "ai" ? "assistant" : m.role,
+    content: m.text
+  }));
 
-    const prompt = `You are a co-founder AI for the user. Respond casually but professionally. 
-Use past context when relevant. Topics: ${topicSummary}\nConversation:\n${context}\nUser just said: ${text}`;
+  // Add AI system prompt
+  const systemPrompt = {
+    role: "system",
+    content: "You are Nexus, an adaptive AI co-founder and collaborator. Be conversational but professional. Recall context naturally."
+  };
 
-    const aiText = await askAI(prompt);
-    chat.messages.push({ role: "ai", text: aiText });
-    addMessage("ai", aiText);
+  const aiResponse = await askLlama([systemPrompt, ...contextMessages]);
+  chat.messages.push({ role: "ai", text: aiResponse });
+  addMessage("ai", aiResponse);
 
-    // Update topics example
-    if (text.toLowerCase().includes("website") && !chat.topics.some(t => t.name === "website")) {
-        chat.topics.push({ name: "website", summary: "User wants a website; AI suggests ideas." });
-    }
-
-    saveChats();
-    renderHistory();
+  saveChats();
+  renderHistory();
 }
 
 // === INIT ===
 sendBtn.addEventListener("click", sendMessage);
 userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
 window.addEventListener("load", renderHistory);
+
