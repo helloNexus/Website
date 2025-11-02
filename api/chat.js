@@ -4,6 +4,7 @@ export default async function handler(req, res) {
   try {
     const { prompt } = req.body;
     const HF_KEY = process.env.HF_KEY;
+
     if (!HF_KEY) return res.status(500).json({ text: "HF_KEY not set" });
 
     const response = await fetch(
@@ -14,16 +15,22 @@ export default async function handler(req, res) {
           "Authorization": `Bearer ${HF_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ inputs: prompt }),
+        body: JSON.stringify({
+          inputs: prompt,
+          options: { wait_for_model: true },
+          parameters: { max_new_tokens: 300 },
+        }),
       }
     );
 
+    // read body once
+    const textBody = await response.text();
+
     let data;
     try {
-      data = await response.json();
+      data = JSON.parse(textBody); // attempt to parse JSON
     } catch {
-      const txt = await response.text();
-      console.error("HF returned non-JSON:", txt);
+      console.error("HF returned non-JSON:", textBody);
       return res.status(500).json({ text: "HF returned invalid response" });
     }
 
@@ -31,6 +38,7 @@ export default async function handler(req, res) {
     if (data.generated_text) return res.status(200).json({ text: data.generated_text });
 
     return res.status(200).json({ text: "No response from AI." });
+
   } catch (err) {
     console.error("Server error:", err);
     return res.status(500).json({ text: "Error connecting to AI." });
