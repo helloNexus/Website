@@ -1,127 +1,134 @@
-// Elements
+// ======== DOM Elements ========
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
-const modal = document.getElementById("welcomeModal");
-const closeModal = document.getElementById("closeModal");
-const historyList = document.getElementById("historyList");
+const welcomeModal = document.getElementById("welcomeModal");
+const closeModalBtn = document.getElementById("closeModal");
+const menuItems = document.querySelectorAll(".menu-item");
 
-let currentChat = [];
-let chatHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+// ======== LocalStorage Keys ========
+const STORAGE_KEY = "nexusChats";
 
-// Modal
+// ======== State ========
+let currentTab = "chat";
+let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let currentChat = null;
+
+// ======== Modal ========
 window.onload = () => {
-  if (!localStorage.getItem("nexusModalSeen")) {
-    modal.style.display = "flex";
+  if (!localStorage.getItem("welcomeShown")) {
+    welcomeModal.style.display = "flex";
   }
-  renderHistory();
+  loadChatHistory();
 };
 
-closeModal?.addEventListener("click", () => {
-  modal.style.display = "none";
-  localStorage.setItem("nexusModalSeen", "true");
+closeModalBtn.addEventListener("click", () => {
+  welcomeModal.style.display = "none";
+  localStorage.setItem("welcomeShown", true);
 });
 
-// Event listeners
-sendBtn?.addEventListener("click", handleSend);
-userInput?.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") handleSend();
-});
-
-// Send message
-async function handleSend() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  addMessage("user", text);
-  userInput.value = "";
-
-  currentChat.push({ role: "user", content: text });
-
-  const aiResponse = await askAI(text);
-  addMessage("ai", aiResponse);
-
-  currentChat.push({ role: "assistant", content: aiResponse });
-  saveChat();
-  renderHistory();
-}
-
-// Call server endpoint
-async function askAI(prompt) {
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      const txt = await res.text();
-      console.error("HF returned non-JSON:", txt);
-      return "HF returned invalid response";
+// ======== Menu Tab Switching ========
+menuItems.forEach(item => {
+  item.addEventListener("click", () => {
+    menuItems.forEach(i => i.classList.remove("active"));
+    item.classList.add("active");
+    currentTab = item.dataset.tab || "chat";
+    if (currentTab === "chat") {
+      chatArea.style.display = "block";
+      loadChatHistory();
+    } else if (currentTab === "history") {
+      chatArea.style.display = "block";
+      loadHistoryTab();
     }
-    return data.text || "No response from AI.";
-  } catch (err) {
-    console.error(err);
-    return "Error connecting to AI.";
-  }
+  });
+});
+
+// ======== Load Chat Area ========
+function loadChatHistory() {
+  chatArea.innerHTML = "";
+  if (!currentChat) return;
+  currentChat.messages.forEach(msg => {
+    appendMessage(msg.role, msg.content);
+  });
+  scrollToBottom();
 }
 
-// Add message to chat
-function addMessage(sender, text) {
-  const div = document.createElement("div");
-  div.classList.add("message", sender);
-  div.innerHTML = `<p>${text}</p>`;
-  chatArea.appendChild(div);
-  chatArea.scrollTop = chatArea.scrollHeight;
-}
-
-// Save chat & summarize
-function saveChat() {
-  if (!currentChat.length) return;
-  let name =
-    chatHistory.length === 0
-      ? currentChat[0].content.split(" ").slice(0, 4).join(" ") + "..."
-      : chatHistory[0].name;
-
-  if (chatHistory.length === 0) {
-    chatHistory.unshift({ name, messages: [...currentChat], summary: summarizeChat(currentChat) });
-  } else {
-    chatHistory[0].messages = [...currentChat];
-    chatHistory[0].summary = summarizeChat(currentChat);
-  }
-  localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
-}
-
-// Simple summary: join first 300 chars of user messages
-function summarizeChat(messages) {
-  return messages
-    .filter((m) => m.role === "user")
-    .map((m) => m.content)
-    .join(" ")
-    .slice(0, 300);
-}
-
-// Render sidebar history
-function renderHistory() {
-  if (!historyList) return;
-  historyList.innerHTML = "";
-  chatHistory.forEach((chat, idx) => {
-    const item = document.createElement("div");
-    item.className = "menu-item history-item";
-    item.textContent = chat.name;
-    item.onclick = () => loadChat(idx);
-    historyList.appendChild(item);
+function loadHistoryTab() {
+  chatArea.innerHTML = "<h3>Past Conversations</h3>";
+  chats.forEach((chat, idx) => {
+    const div = document.createElement("div");
+    div.classList.add("history-item");
+    div.textContent = chat.title || `Chat ${idx + 1}`;
+    div.addEventListener("click", () => {
+      currentChat = chat;
+      currentTab = "chat";
+      menuItems.forEach(i => i.classList.remove("active"));
+      menuItems[0].classList.add("active");
+      loadChatHistory();
+    });
+    chatArea.appendChild(div);
   });
 }
 
-// Load a previous chat
-function loadChat(index) {
-  const chat = chatHistory[index];
-  chatArea.innerHTML = "";
-  currentChat = [...chat.messages];
-  chat.messages.forEach((msg) =>
-    addMessage(msg.role === "user" ? "user" : "ai", msg.content)
-  );
+// ======== Append Messages ========
+function appendMessage(role, text) {
+  const div = document.createElement("div");
+  div.classList.add(role === "user" ? "user-msg" : "ai-msg");
+  div.textContent = text;
+  chatArea.appendChild(div);
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+// ======== Send Message ========
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendMessage();
+});
+
+async function sendMessage() {
+  const input = userInput.value.trim();
+  if (!input) return;
+
+  // Start new chat if needed
+  if (!currentChat) {
+    currentChat = { title: input.split(" ").slice(0, 5).join(" "), messages: [] };
+    chats.push(currentChat);
+  }
+
+  appendMessage("user", input);
+  currentChat.messages.push({ role: "user", content: input });
+  saveChats();
+
+  userInput.value = "";
+  appendMessage("ai", "Typing...");
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: buildPrompt(input) }),
+    });
+    const data = await response.json();
+    chatArea.querySelector(".ai-msg:last-child").textContent = data.text || "No response from AI.";
+    currentChat.messages.push({ role: "ai", content: data.text || "" });
+    saveChats();
+  } catch (err) {
+    console.error(err);
+    chatArea.querySelector(".ai-msg:last-child").textContent = "Error connecting to AI.";
+  }
+}
+
+// ======== Build Prompt for AI (include summaries) ========
+function buildPrompt(newMsg) {
+  let summary = currentChat.summary || "";
+  return summary + "\nUser: " + newMsg + "\nAI:";
+}
+
+// ======== Save Chats to LocalStorage ========
+function saveChats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
 }
