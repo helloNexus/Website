@@ -1,6 +1,6 @@
 
 // === CONFIG ===
-const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; // 🔒 replace with your key
+const GEMINI_API_KEY = "AIzaSyD-rS7ZrGdQcDQ21rHVGnpLS9R6p1FNKWE"; // 🔒 replace with your key
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
 // === GLOBALS ===
