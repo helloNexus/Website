@@ -105,7 +105,6 @@ function summarizeChat(messages) {
 function renderHistory() {
   if (!sidebarMenu) return;
 
-  // Remove old items
   sidebarMenu.querySelectorAll(".history-item").forEach((e) => e.remove());
 
   chatHistory.forEach((chat, idx) => {
