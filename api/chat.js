@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body; // Vercel parses JSON automatically
+    const { prompt } = req.body; // <-- Vercel parses JSON automatically
 
     const HF_KEY = process.env.HF_KEY;
     if (!HF_KEY) return res.status(500).json({ text: "HF_KEY not set" });
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     const data = await response.json();
     console.log("HF API response:", data);
 
+    // Standardize response
     if (Array.isArray(data)) return res.status(200).json({ text: data[0]?.generated_text || "No response from AI." });
     if (data.generated_text) return res.status(200).json({ text: data.generated_text });
 
@@ -38,4 +39,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ text: "Error connecting to AI." });
   }
 }
-
