@@ -1,49 +1,70 @@
-// === CONFIG ===
+// ========== CONFIG ==========
 const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_KEY = "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"; // replace with your key for testing
+const OPENROUTER_KEY = "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";
+const MODEL = "meta-llama/llama-4-maverick";
 
-// === ELEMENTS ===
-const chatArea = document.getElementById("chatArea");
-const userInput = document.getElementById("userInput");
-const sendBtn = document.getElementById("sendBtn");
-const historyArea = document.getElementById("history");
+// ========== ELEMENTS ==========
+const chatContainer = document.getElementById("chat-container");
+const chatInput = document.getElementById("chat-input");
+const sendBtn = document.getElementById("send-btn");
+const historyList = document.getElementById("history-list");
 
-// === GLOBALS ===
-let currentChatId = null;
-let chats = JSON.parse(localStorage.getItem("nexusChats") || "{}");
+// ========== LOAD ==========
+window.onload = () => {
+  showWelcomePopup();
+  loadChatHistory();
+};
 
-// === HELPERS ===
-function addMessage(role, text) {
-  const div = document.createElement("div");
-  div.classList.add("message", role);
-  div.textContent = text;
-  chatArea.appendChild(div);
-  chatArea.scrollTop = chatArea.scrollHeight;
+// ========== POPUP ==========
+function showWelcomePopup() {
+  if (localStorage.getItem("nexusPopupSeen")) return;
+
+  const popup = document.createElement("div");
+  popup.className = "popup";
+  popup.innerHTML = `
+    <div class="popup-content">
+      <h2>Welcome to Nexus 👋</h2>
+      <p>This AI acts as your co-founder, co-writer, and creative partner. 
+      It remembers your previous topics, summarizes them, and builds context over time.</p>
+      <p class="disclaimer">⚠️ Disclaimer: Nexus is an AI assistant and not a substitute for professional advice.</p>
+      <button id="closePopup">Start Chatting</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  document.getElementById("closePopup").onclick = () => {
+    popup.remove();
+    localStorage.setItem("nexusPopupSeen", "true");
+  };
 }
 
-function saveChats() {
-  localStorage.setItem("nexusChats", JSON.stringify(chats));
+// ========== CHAT ==========
+let currentChat = [];
+let chatSummaries = JSON.parse(localStorage.getItem("chatSummaries")) || {};
+
+sendBtn.addEventListener("click", () => handleSend());
+chatInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") handleSend();
+});
+
+async function handleSend() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  addMessage("user", text);
+  chatInput.value = "";
+
+  currentChat.push({ role: "user", content: text });
+
+  const response = await askLlama(currentChat);
+  addMessage("ai", response);
+
+  currentChat.push({ role: "assistant", content: response });
+
+  // Save convo
+  saveConversation(text, response);
 }
 
-function renderHistory() {
-  if (!historyArea) return;
-  historyArea.innerHTML = "";
-  Object.entries(chats).forEach(([id, chat]) => {
-    const item = document.createElement("div");
-    item.classList.add("history-item");
-    item.textContent = chat.title || "Untitled Chat";
-    item.onclick = () => loadChat(id);
-    historyArea.appendChild(item);
-  });
-}
-
-function loadChat(id) {
-  currentChatId = id;
-  chatArea.innerHTML = "";
-  chats[id].messages.forEach(msg => addMessage(msg.role, msg.text));
-}
-
-// === AI CALL ===
+// ========== AI REQUEST ==========
 async function askLlama(messages) {
   try {
     const res = await fetch(OPENROUTER_API, {
@@ -51,64 +72,102 @@ async function askLlama(messages) {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${OPENROUTER_KEY}`,
-        "HTTP-Referer": window.location.origin
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Nexus Web Client"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-4-maverick",
-        messages: messages
+        model: MODEL,
+        messages: messages,
       })
     });
 
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Error Response:", text);
+      return `API Error (${res.status}): ${text}`;
+    }
+
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "No response.";
+    console.log("LLaMA raw response:", data);
+
+    const aiMessage =
+      data?.choices?.[0]?.message?.content ||
+      data?.choices?.[0]?.delta?.content ||
+      "No response from AI.";
+
+    return aiMessage;
   } catch (err) {
-    console.error(err);
-    return "Error connecting to LLaMA API.";
+    console.error("Fetch error:", err);
+    return "Connection error: " + err.message;
   }
 }
 
-// === CHAT FLOW ===
-async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  userInput.value = "";
-
-  // Start new chat if needed
-  if (!currentChatId) {
-    currentChatId = Date.now().toString();
-    chats[currentChatId] = { title: "", messages: [], topics: [] };
-  }
-
-  const chat = chats[currentChatId];
-  chat.messages.push({ role: "user", text });
-  addMessage("user", text);
-
-  if (!chat.title) {
-    chat.title = text.split(" ").slice(0, 5).join(" ") + "...";
-  }
-
-  // Build context
-  const contextMessages = chat.messages.map(m => ({
-    role: m.role === "ai" ? "assistant" : m.role,
-    content: m.text
-  }));
-
-  // Add AI system prompt
-  const systemPrompt = {
-    role: "system",
-    content: "You are Nexus, an adaptive AI co-founder and collaborator. Be conversational but professional. Recall context naturally."
-  };
-
-  const aiResponse = await askLlama([systemPrompt, ...contextMessages]);
-  chat.messages.push({ role: "ai", text: aiResponse });
-  addMessage("ai", aiResponse);
-
-  saveChats();
-  renderHistory();
+// ========== UI ==========
+function addMessage(sender, text) {
+  const div = document.createElement("div");
+  div.className = `message ${sender}`;
+  div.innerHTML = `<p>${text}</p>`;
+  chatContainer.appendChild(div);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// === INIT ===
-sendBtn.addEventListener("click", sendMessage);
-userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
-window.addEventListener("load", renderHistory);
+// ========== STORAGE ==========
+function saveConversation(userMsg, aiMsg) {
+  let allChats = JSON.parse(localStorage.getItem("chatHistory")) || [];
+
+  // If new chat
+  if (currentChat.length <= 2) {
+    const chatName = generateChatName(userMsg);
+    allChats.unshift({
+      id: Date.now(),
+      name: chatName,
+      messages: [...currentChat],
+    });
+    chatSummaries[chatName] = summarizeChat([...currentChat]);
+  } else {
+    const latestChat = allChats[0];
+    if (latestChat) {
+      latestChat.messages = [...currentChat];
+      chatSummaries[latestChat.name] = summarizeChat([...currentChat]);
+    }
+  }
+
+  localStorage.setItem("chatHistory", JSON.stringify(allChats));
+  localStorage.setItem("chatSummaries", JSON.stringify(chatSummaries));
+  loadChatHistory();
+}
+
+// ========== SUMMARIZE ==========
+function summarizeChat(chat) {
+  let summary = "";
+  for (const msg of chat) {
+    if (msg.role === "user") summary += `${msg.content}. `;
+  }
+  return summary.slice(0, 300);
+}
+
+// ========== LOAD HISTORY ==========
+function loadChatHistory() {
+  const chats = JSON.parse(localStorage.getItem("chatHistory")) || [];
+  historyList.innerHTML = "";
+
+  chats.forEach(chat => {
+    const item = document.createElement("li");
+    item.textContent = chat.name;
+    item.onclick = () => loadChat(chat);
+    historyList.appendChild(item);
+  });
+}
+
+function loadChat(chat) {
+  chatContainer.innerHTML = "";
+  currentChat = chat.messages;
+  chat.messages.forEach(msg => addMessage(msg.role === "user" ? "user" : "ai", msg.content));
+}
+
+// ========== UTIL ==========
+function generateChatName(message) {
+  const words = message.split(" ");
+  return words.slice(0, 3).join(" ") + (words.length > 3 ? "..." : "");
+}
 
