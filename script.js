@@ -1,173 +1,76 @@
-// ========== CONFIG ==========
+// ===== CONFIG =====
 const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_KEY = "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";
-const MODEL = "meta-llama/llama-4-maverick";
+const OPENROUTER_KEY = "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"; // replace later — don’t expose in production
+const MODEL = "meta-llama/llama-3.1-70b-instruct";
 
-// ========== ELEMENTS ==========
-const chatContainer = document.getElementById("chat-container");
-const chatInput = document.getElementById("chat-input");
-const sendBtn = document.getElementById("send-btn");
-const historyList = document.getElementById("history-list");
+// ===== ELEMENTS =====
+const chatArea = document.getElementById("chatArea");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const modal = document.getElementById("welcomeModal");
+const closeModal = document.getElementById("closeModal");
 
-// ========== LOAD ==========
+// ===== MODAL =====
 window.onload = () => {
-  showWelcomePopup();
-  loadChatHistory();
+  if (!localStorage.getItem("nexusModalSeen")) {
+    modal.style.display = "flex";
+  }
 };
 
-// ========== POPUP ==========
-function showWelcomePopup() {
-  if (localStorage.getItem("nexusPopupSeen")) return;
+closeModal?.addEventListener("click", () => {
+  modal.style.display = "none";
+  localStorage.setItem("nexusModalSeen", "true");
+});
 
-  const popup = document.createElement("div");
-  popup.className = "popup";
-  popup.innerHTML = `
-    <div class="popup-content">
-      <h2>Welcome to Nexus 👋</h2>
-      <p>This AI acts as your co-founder, co-writer, and creative partner. 
-      It remembers your previous topics, summarizes them, and builds context over time.</p>
-      <p class="disclaimer">⚠️ Disclaimer: Nexus is an AI assistant and not a substitute for professional advice.</p>
-      <button id="closePopup">Start Chatting</button>
-    </div>
-  `;
-  document.body.appendChild(popup);
-
-  document.getElementById("closePopup").onclick = () => {
-    popup.remove();
-    localStorage.setItem("nexusPopupSeen", "true");
-  };
-}
-
-// ========== CHAT ==========
-let currentChat = [];
-let chatSummaries = JSON.parse(localStorage.getItem("chatSummaries")) || {};
-
-sendBtn.addEventListener("click", () => handleSend());
-chatInput.addEventListener("keypress", (e) => {
+// ===== EVENT LISTENERS =====
+sendBtn?.addEventListener("click", handleSend);
+userInput?.addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleSend();
 });
 
+// ===== SEND MESSAGE =====
 async function handleSend() {
-  const text = chatInput.value.trim();
+  const text = userInput.value.trim();
   if (!text) return;
+
   addMessage("user", text);
-  chatInput.value = "";
+  userInput.value = "";
 
-  currentChat.push({ role: "user", content: text });
-
-  const response = await askLlama(currentChat);
+  const response = await askAI(text);
   addMessage("ai", response);
-
-  currentChat.push({ role: "assistant", content: response });
-
-  // Save convo
-  saveConversation(text, response);
 }
 
-// ========== AI REQUEST ==========
-async function askLlama(messages) {
+// ===== AI CALL =====
+async function askAI(prompt) {
   try {
     const res = await fetch(OPENROUTER_API, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         "Authorization": `Bearer ${OPENROUTER_KEY}`,
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Nexus Web Client"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: messages,
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("Error Response:", text);
-      return `API Error (${res.status}): ${text}`;
-    }
-
     const data = await res.json();
-    console.log("LLaMA raw response:", data);
+    console.log("AI raw response:", data);
 
-    const aiMessage =
-      data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.delta?.content ||
-      "No response from AI.";
-
-    return aiMessage;
+    return data?.choices?.[0]?.message?.content || "No response from AI.";
   } catch (err) {
-    console.error("Fetch error:", err);
-    return "Connection error: " + err.message;
+    console.error("Error:", err);
+    return "Error connecting to AI.";
   }
 }
 
-// ========== UI ==========
+// ===== ADD MESSAGE =====
 function addMessage(sender, text) {
-  const div = document.createElement("div");
-  div.className = `message ${sender}`;
-  div.innerHTML = `<p>${text}</p>`;
-  chatContainer.appendChild(div);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// ========== STORAGE ==========
-function saveConversation(userMsg, aiMsg) {
-  let allChats = JSON.parse(localStorage.getItem("chatHistory")) || [];
-
-  // If new chat
-  if (currentChat.length <= 2) {
-    const chatName = generateChatName(userMsg);
-    allChats.unshift({
-      id: Date.now(),
-      name: chatName,
-      messages: [...currentChat],
-    });
-    chatSummaries[chatName] = summarizeChat([...currentChat]);
-  } else {
-    const latestChat = allChats[0];
-    if (latestChat) {
-      latestChat.messages = [...currentChat];
-      chatSummaries[latestChat.name] = summarizeChat([...currentChat]);
-    }
-  }
-
-  localStorage.setItem("chatHistory", JSON.stringify(allChats));
-  localStorage.setItem("chatSummaries", JSON.stringify(chatSummaries));
-  loadChatHistory();
-}
-
-// ========== SUMMARIZE ==========
-function summarizeChat(chat) {
-  let summary = "";
-  for (const msg of chat) {
-    if (msg.role === "user") summary += `${msg.content}. `;
-  }
-  return summary.slice(0, 300);
-}
-
-// ========== LOAD HISTORY ==========
-function loadChatHistory() {
-  const chats = JSON.parse(localStorage.getItem("chatHistory")) || [];
-  historyList.innerHTML = "";
-
-  chats.forEach(chat => {
-    const item = document.createElement("li");
-    item.textContent = chat.name;
-    item.onclick = () => loadChat(chat);
-    historyList.appendChild(item);
-  });
-}
-
-function loadChat(chat) {
-  chatContainer.innerHTML = "";
-  currentChat = chat.messages;
-  chat.messages.forEach(msg => addMessage(msg.role === "user" ? "user" : "ai", msg.content));
-}
-
-// ========== UTIL ==========
-function generateChatName(message) {
-  const words = message.split(" ");
-  return words.slice(0, 3).join(" ") + (words.length > 3 ? "..." : "");
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.innerHTML = `<p>${text}</p>`;
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
 
