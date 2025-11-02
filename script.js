@@ -1,119 +1,107 @@
-
 // === CONFIG ===
-const GEMINI_API_KEY = "AIzaSyD-rS7ZrGdQcDQ21rHVGnpLS9R6p1FNKWE"; // 🔒 replace with your key
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+const GEMINI_API_KEY = "AIzaSyD-rS7ZrGdQcDQ21rHVGnpLS9R6p1FNKWE"; // visible for testing
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_API_KEY;
+
+// === ELEMENTS ===
+const chatArea = document.getElementById("chatArea");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const historyArea = document.getElementById("history");
 
 // === GLOBALS ===
 let currentChatId = null;
-let chatHistory = JSON.parse(localStorage.getItem("nexus_chats") || "{}");
-const chatBox = document.getElementById("chat-box");
-const userInput = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const historyList = document.getElementById("history-list");
+let chats = JSON.parse(localStorage.getItem("nexusChats") || "{}");
 
 // === HELPERS ===
-function createMessageElement(sender, text) {
-  const div = document.createElement("div");
-  div.classList.add("message", sender);
-  div.innerHTML = `<p>${text}</p>`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.classList.add("message", role);
+    div.textContent = text;
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function saveChat() {
-  localStorage.setItem("nexus_chats", JSON.stringify(chatHistory));
-}
-
-function summarizeChat(messages) {
-  // Basic summary: take the first user msg as topic summary
-  if (!messages.length) return "Untitled Conversation";
-  const firstMsg = messages.find(m => m.role === "user");
-  return firstMsg ? firstMsg.content.slice(0, 40) + "..." : "Untitled Conversation";
+function saveChats() {
+    localStorage.setItem("nexusChats", JSON.stringify(chats));
 }
 
 function renderHistory() {
-  historyList.innerHTML = "";
-  Object.entries(chatHistory).forEach(([id, chat]) => {
-    const item = document.createElement("div");
-    item.classList.add("history-item");
-    item.textContent = chat.title;
-    item.onclick = () => loadChat(id);
-    historyList.appendChild(item);
-  });
+    if (!historyArea) return;
+    historyArea.innerHTML = "";
+    Object.entries(chats).forEach(([id, chat]) => {
+        const item = document.createElement("div");
+        item.classList.add("history-item");
+        item.textContent = chat.title || "Untitled Chat";
+        item.onclick = () => loadChat(id);
+        historyArea.appendChild(item);
+    });
 }
 
 function loadChat(id) {
-  currentChatId = id;
-  chatBox.innerHTML = "";
-  chatHistory[id].messages.forEach(msg => {
-    createMessageElement(msg.role, msg.content);
-  });
+    currentChatId = id;
+    chatArea.innerHTML = "";
+    chats[id].messages.forEach(msg => addMessage(msg.role, msg.text));
 }
 
-// === AI FETCH ===
-async function sendToGemini(messages) {
-  const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: messages.map(m => ({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.content }]
-      }))
-    }),
-  });
-
-  const data = await response.json();
-  try {
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error: no response";
-  } catch (e) {
-    return "Error parsing response.";
-  }
+// === AI CALL ===
+async function askAI(prompt) {
+    try {
+        const res = await fetch(GEMINI_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+        const data = await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
+    } catch (err) {
+        console.error(err);
+        return "Error calling Gemini API.";
+    }
 }
 
-// === CHAT FLOW ===
-async function handleSend() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  userInput.value = "";
+// === SEND MESSAGE ===
+async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+    userInput.value = "";
 
-  if (!currentChatId) {
-    // Create new chat
-    currentChatId = Date.now().toString();
-    chatHistory[currentChatId] = {
-      title: "",
-      messages: []
-    };
-  }
+    // Start new chat if needed
+    if (!currentChatId) {
+        currentChatId = Date.now().toString();
+        chats[currentChatId] = { title: "", messages: [], topics: [] };
+    }
 
-  const chat = chatHistory[currentChatId];
-  chat.messages.push({ role: "user", content: text });
-  createMessageElement("user", text);
+    const chat = chats[currentChatId];
+    chat.messages.push({ role: "user", text });
+    addMessage("user", text);
 
-  const contextSummary = chat.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-  const aiPrompt = `You are Nexus, an adaptive AI co-founder and collaborator. Be professional but conversational. 
-Use past context to recall ideas naturally. Never use emojis. 
-Current chat so far:\n${contextSummary}`;
+    if (!chat.title) {
+        chat.title = text.split(" ").slice(0, 5).join(" ") + "...";
+    }
 
-  const aiResponse = await sendToGemini([
-    { role: "user", content: aiPrompt }
-  ]);
+    // Build prompt with context & topic summaries
+    const topicSummary = chat.topics.map(t => `${t.name}: ${t.summary}`).join("\n");
+    const context = chat.messages.map(m => `${m.role}: ${m.text}`).join("\n");
 
-  chat.messages.push({ role: "assistant", content: aiResponse });
-  createMessageElement("assistant", aiResponse);
+    const prompt = `You are a co-founder AI for the user. Respond casually but professionally. 
+Use past context when relevant. Topics: ${topicSummary}\nConversation:\n${context}\nUser just said: ${text}`;
 
-  if (!chat.title) {
-    chat.title = summarizeChat(chat.messages);
-  }
+    const aiText = await askAI(prompt);
+    chat.messages.push({ role: "ai", text: aiText });
+    addMessage("ai", aiText);
 
-  saveChat();
-  renderHistory();
+    // Update topics example
+    if (text.toLowerCase().includes("website") && !chat.topics.some(t => t.name === "website")) {
+        chat.topics.push({ name: "website", summary: "User wants a website; AI suggests ideas." });
+    }
+
+    saveChats();
+    renderHistory();
 }
 
 // === INIT ===
-sendBtn.addEventListener("click", handleSend);
-userInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") handleSend();
-});
-
-window.onload = renderHistory;
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+window.addEventListener("load", renderHistory);
