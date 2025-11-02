@@ -1,6 +1,6 @@
 // ===== CONFIG =====
 const HF_MODEL = "meta-llama/Llama-2-7b-chat-hf"; // free public model
-const HF_TOKEN = "YOUR_HF_KEY"; // free Hugging Face token (safe for browser testing)
+const HF_TOKEN = "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"; // free Hugging Face token (safe for browser testing)
 
 // ===== ELEMENTS =====
 const chatArea = document.getElementById("chatArea");
