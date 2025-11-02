@@ -1,12 +1,9 @@
-// /api/chat.js
+// Node ESM
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ text: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ text: "Method not allowed" });
 
   try {
-    const { prompt } = req.body; // <-- Vercel parses JSON automatically
-
+    const { prompt } = req.body;
     const HF_KEY = process.env.HF_KEY;
     if (!HF_KEY) return res.status(500).json({ text: "HF_KEY not set" });
 
@@ -26,10 +23,15 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await response.json();
-    console.log("HF API response:", data);
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      const txt = await response.text();
+      console.error("HF returned non-JSON:", txt);
+      return res.status(500).json({ text: "HF returned invalid response" });
+    }
 
-    // Standardize response
     if (Array.isArray(data)) return res.status(200).json({ text: data[0]?.generated_text || "No response from AI." });
     if (data.generated_text) return res.status(200).json({ text: data.generated_text });
 
