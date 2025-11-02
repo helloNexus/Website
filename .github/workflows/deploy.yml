@@ -1,0 +1,26 @@
+name: Deploy Nexus
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Use Node.js
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      # Pass the secret as an environment variable
+      - name: Build & Deploy
+        env:
+          HF_KEY: ${{ secrets.HF_KEY }}
+        run: |
+          echo "Building with secret..."
+          node build-or-start-server.js
