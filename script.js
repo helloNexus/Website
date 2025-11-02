@@ -1,4 +1,3 @@
-// ======== DOM Elements ========
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -6,15 +5,15 @@ const welcomeModal = document.getElementById("welcomeModal");
 const closeModalBtn = document.getElementById("closeModal");
 const menuItems = document.querySelectorAll(".menu-item");
 
-// ======== LocalStorage Keys ========
+
 const STORAGE_KEY = "nexusChats";
 
-// ======== State ========
+
 let currentTab = "chat";
 let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let currentChat = null;
 
-// ======== Modal ========
+
 window.onload = () => {
   if (!localStorage.getItem("welcomeShown")) {
     welcomeModal.style.display = "flex";
