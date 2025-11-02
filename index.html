@@ -9,12 +9,11 @@
 </head>
 <body>
 
-<!-- Modal -->
+<!-- Welcome Modal -->
 <div id="welcomeModal" class="modal">
   <div class="modal-content">
     <h2>Welcome to Nexus</h2>
     <p>This is an experimental AI platform. Outputs are for research and creativity purposes only.</p>
-    <p>Use the chat below to start brainstorming and planning.</p>
     <button id="closeModal">Got it</button>
   </div>
 </div>
@@ -26,9 +25,8 @@
     <div class="menu">
       <div class="menu-item active" data-tab="chat">Chat</div>
       <div class="menu-item" data-tab="history">History</div>
-      <div class="menu-item">Notes</div>
-      <div class="menu-item">Settings</div>
     </div>
+    <div id="historyList"></div>
   </div>
 
   <!-- Main content -->
@@ -38,7 +36,8 @@
     <div class="input-bar" id="inputBar">
       <input type="text" id="userInput" placeholder="Type your message here...">
       <button id="sendBtn">Send</button>
-    
+    </div>
+  </div>
 </div>
 
 <script src="script.js"></script>
