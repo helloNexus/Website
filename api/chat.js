@@ -1,4 +1,3 @@
-// Node ESM
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ text: "Method not allowed" });
 
@@ -15,11 +14,7 @@ export default async function handler(req, res) {
           "Authorization": `Bearer ${HF_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          inputs: prompt,
-          options: { wait_for_model: true },
-          parameters: { max_new_tokens: 300 },
-        }),
+        body: JSON.stringify({ inputs: prompt }),
       }
     );
 
