@@ -1,7 +1,3 @@
-// ===== CONFIG =====
-const HF_MODEL = "meta-llama/Llama-2-7b-chat-hf"; // free public model
-const HF_TOKEN = "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"; // free Hugging Face token (safe for browser testing)
-
 // ===== ELEMENTS =====
 const chatArea = document.getElementById("chatArea");
 const userInput = document.getElementById("userInput");
@@ -27,7 +23,7 @@ closeModal?.addEventListener("click", () => {
   localStorage.setItem("nexusModalSeen", "true");
 });
 
-// ===== EVENT LISTENERS =====
+// ===== EVENTS =====
 sendBtn?.addEventListener("click", handleSend);
 userInput?.addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleSend();
@@ -43,7 +39,7 @@ async function handleSend() {
 
   currentChat.push({ role: "user", content: text });
 
-  const aiResponse = await askLLaMA(text);
+  const aiResponse = await askAI(text);
   addMessage("ai", aiResponse);
 
   currentChat.push({ role: "assistant", content: aiResponse });
@@ -52,28 +48,25 @@ async function handleSend() {
   renderHistory();
 }
 
-// ===== HUGGING FACE API CALL =====
-async function askLLaMA(prompt) {
+// ===== CALL SERVER ENDPOINT =====
+async function askAI(prompt) {
   try {
-    const res = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+    const res = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${HF_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 300 } })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
     });
 
     const data = await res.json();
-    console.log("HF response:", data);
+    console.log("Server AI response:", data);
 
-    // handle array or object response
+    // Hugging Face response
     if (Array.isArray(data)) return data[0]?.generated_text || "No response from AI.";
     if (data.generated_text) return data.generated_text;
 
     return "No response from AI.";
   } catch (err) {
-    console.error("AI error:", err);
+    console.error("Error connecting to AI:", err);
     return "Error connecting to AI.";
   }
 }
@@ -91,12 +84,10 @@ function addMessage(sender, text) {
 function saveChat() {
   if (!currentChat.length) return;
 
-  let name;
-  if (chatHistory.length === 0) {
-    name = currentChat[0].content.split(" ").slice(0, 4).join(" ") + "...";
-  } else {
-    name = chatHistory[0].name; // ongoing chat
-  }
+  let name =
+    chatHistory.length === 0
+      ? currentChat[0].content.split(" ").slice(0, 4).join(" ") + "..."
+      : chatHistory[0].name;
 
   if (chatHistory.length === 0) {
     chatHistory.unshift({ name, messages: [...currentChat], summary: summarizeChat(currentChat) });
@@ -111,10 +102,10 @@ function saveChat() {
 // ===== SUMMARIZE CHAT =====
 function summarizeChat(messages) {
   return messages
-    .filter(m => m.role === "user")
-    .map(m => m.content)
+    .filter((m) => m.role === "user")
+    .map((m) => m.content)
     .join(" ")
-    .slice(0, 300); // short summary
+    .slice(0, 300);
 }
 
 // ===== RENDER HISTORY =====
@@ -122,9 +113,9 @@ function renderHistory() {
   if (!sidebarMenu) return;
 
   const existing = sidebarMenu.querySelectorAll(".history-item");
-  existing.forEach(e => e.remove());
+  existing.forEach((e) => e.remove());
 
-  chatHistory.forEach(chat => {
+  chatHistory.forEach((chat) => {
     const item = document.createElement("div");
     item.className = "menu-item history-item";
     item.textContent = chat.name;
@@ -136,5 +127,7 @@ function renderHistory() {
 function loadChat(chat) {
   chatArea.innerHTML = "";
   currentChat = [...chat.messages];
-  chat.messages.forEach(msg => addMessage(msg.role === "user" ? "user" : "ai", msg.content));
+  chat.messages.forEach((msg) =>
+    addMessage(msg.role === "user" ? "user" : "ai", msg.content)
+  );
 }
