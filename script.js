@@ -8,6 +8,7 @@ const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const modal = document.getElementById("welcomeModal");
 const closeModal = document.getElementById("closeModal");
+const sidebarMenu = document.querySelector(".sidebar .menu");
 
 // ===== GLOBALS =====
 let currentChat = [];
@@ -36,12 +37,13 @@ userInput?.addEventListener("keypress", (e) => {
 async function handleSend() {
   const text = userInput.value.trim();
   if (!text) return;
+
   addMessage("user", text);
   userInput.value = "";
 
   currentChat.push({ role: "user", content: text });
 
-  const aiResponse = await askLLaMA(currentChat);
+  const aiResponse = await askLLaMA(text);
   addMessage("ai", aiResponse);
 
   currentChat.push({ role: "assistant", content: aiResponse });
@@ -51,9 +53,7 @@ async function handleSend() {
 }
 
 // ===== HUGGING FACE API CALL =====
-async function askLLaMA(messages) {
-  const lastMessage = messages[messages.length - 1].content;
-
+async function askLLaMA(prompt) {
   try {
     const res = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
       method: "POST",
@@ -61,19 +61,15 @@ async function askLLaMA(messages) {
         "Authorization": `Bearer ${HF_TOKEN}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        inputs: lastMessage,
-        parameters: { max_new_tokens: 300 }
-      })
+      body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 300 } })
     });
 
     const data = await res.json();
     console.log("HF response:", data);
 
-    // Some models return an array of generations
-    if (data?.generated_text) return data.generated_text;
-
-    if (Array.isArray(data?.[0]?.generated_text)) return data[0].generated_text[0];
+    // handle array or object response
+    if (Array.isArray(data)) return data[0]?.generated_text || "No response from AI.";
+    if (data.generated_text) return data.generated_text;
 
     return "No response from AI.";
   } catch (err) {
@@ -99,10 +95,9 @@ function saveChat() {
   if (chatHistory.length === 0) {
     name = currentChat[0].content.split(" ").slice(0, 4).join(" ") + "...";
   } else {
-    name = chatHistory[0].name; // keep same name for ongoing chat
+    name = chatHistory[0].name; // ongoing chat
   }
 
-  // Update first chat in history or add new
   if (chatHistory.length === 0) {
     chatHistory.unshift({ name, messages: [...currentChat], summary: summarizeChat(currentChat) });
   } else {
@@ -119,15 +114,14 @@ function summarizeChat(messages) {
     .filter(m => m.role === "user")
     .map(m => m.content)
     .join(" ")
-    .slice(0, 300);
+    .slice(0, 300); // short summary
 }
 
 // ===== RENDER HISTORY =====
 function renderHistory() {
-  const historyDiv = document.querySelector(".sidebar .menu");
-  if (!historyDiv) return;
+  if (!sidebarMenu) return;
 
-  const existing = historyDiv.querySelectorAll(".history-item");
+  const existing = sidebarMenu.querySelectorAll(".history-item");
   existing.forEach(e => e.remove());
 
   chatHistory.forEach(chat => {
@@ -135,7 +129,7 @@ function renderHistory() {
     item.className = "menu-item history-item";
     item.textContent = chat.name;
     item.onclick = () => loadChat(chat);
-    historyDiv.appendChild(item);
+    sidebarMenu.appendChild(item);
   });
 }
 
