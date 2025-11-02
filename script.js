@@ -1,6 +1,6 @@
 // ========== CONFIG ==========
 const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_KEY = "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";
+const OPENROUTER_KEY = "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";
 const MODEL = "meta-llama/llama-4-maverick";
 
 // ========== ELEMENTS ==========
